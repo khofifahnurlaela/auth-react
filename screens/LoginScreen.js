@@ -3,11 +3,15 @@ import { SafeAreaView, StyleSheet, Text, TextInput, View, Button, Alert, Touchab
 import { FIREBASE_AUTH } from "../helpers/firebase";
 import { signInWithEmailAndPassword } from "firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { signInUser } from "../reducers/auth";
+import { useDispatch, useSelector } from "react-redux";
 
 const LoginScreen = ({ navigation }) => {
     const auth = FIREBASE_AUTH;
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const authState = useSelector((state) => state.auth);
+    const dispatch = useDispatch();
 
     useEffect(() => {
         AsyncStorage
@@ -19,7 +23,24 @@ const LoginScreen = ({ navigation }) => {
         }) 
     }, [])
 
+    useEffect(() => {
+        if (authState.token !== null) {
+            Alert.alert(`Login Success`, `Welcome User`, [
+                {
+                    text: 'Ok',
+                    onPress: () => navigation.navigate('Home')
+                }
+            ])
+        }
+    }, [authState.token])
+
     const handleLogin = async() => {
+        const payload = {
+            email: email,
+            password: password,
+        }
+
+        dispatch(signInUser(payload));
         // try{
         //     const response = await signInWithEmailAndPassword(auth, email, password)
         //     // .then(res => console.log(res))
@@ -36,20 +57,20 @@ const LoginScreen = ({ navigation }) => {
         //     Alert.alert('Login Failed', error.message);
         // }
 
-        signInWithEmailAndPassword(auth, email, password)   // 1. sign in user
-        .then(response => response.user.getIdToken())       // 2. call user id token
-        .then(token => AsyncStorage.setItem('token', token))    // 3. Store token
-        .then( () => {
-            Alert.alert(`Login Success`, `Welcome User`, [
-                {
-                    text: 'Ok',
-                    onPress: () => navigation.navigate('Home')
-                }
-            ])
-        })
-        .catch(error => {
-            Alert.alert(`Login Failed`, error.message)
-        })
+        // signInWithEmailAndPassword(auth, email, password)   // 1. sign in user
+        // .then(response => response.user.getIdToken())       // 2. call user id token
+        // .then(token => AsyncStorage.setItem('token', token))    // 3. Store token
+        // .then( () => {
+        //     Alert.alert(`Login Success`, `Welcome User`, [
+        //         {
+        //             text: 'Ok',
+        //             onPress: () => navigation.navigate('Home')
+        //         }
+        //     ])
+        // })
+        // .catch(error => {
+        //     Alert.alert(`Login Failed`, error.message)
+        // })
     }
 
     return (
@@ -69,8 +90,9 @@ const LoginScreen = ({ navigation }) => {
                 secureTextEntry
                 value={password}
                 onChangeText={setPassword}
-            />
+                />
             <Button title="Login" onPress={handleLogin}/>
+            <Text>{authState.loading? 'Loading...' : ''}</Text>
             <View style={styles.horizontal}>
                 <Text style={styles.regularText}>Belum memiliki account?</Text>
                 <TouchableOpacity>
